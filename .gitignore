@@ -1,0 +1,39 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Datasets and experiment assets
+UDIS-D/
+fusion/
+outputs/
+results/
+runs/
+experiments/
+
+# TensorFlow checkpoints and summaries
+Codes/checkpoints/
+Codes/summary/
+*.ckpt
+*.ckpt-*
+checkpoint
+events.out.tfevents.*
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
