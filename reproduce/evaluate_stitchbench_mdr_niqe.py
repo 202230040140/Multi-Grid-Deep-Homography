@@ -14,6 +14,7 @@ from .common import (
     DEFAULT_DEPTH_GSP_ROOT,
     DEFAULT_MANIFEST,
     DEFAULT_OUT_ROOT,
+    DEFAULT_RESULT_ROOT,
     METHOD_VARIANT,
     PER_PAIR_FIELDS,
     fmt_float,
@@ -52,6 +53,7 @@ def evaluate_rows(
     rows: list[dict[str, str]],
     *,
     mgdh_root: Path,
+    result_root: Path | None = None,
     device: str,
     skip_mdr: bool = False,
     skip_niqe: bool = False,
@@ -70,7 +72,8 @@ def evaluate_rows(
         dataset = row["dataset"]
         category = row.get("category", "")
         scene_dir = mgdh_root / dataset
-        panorama = scene_dir / "panorama.png"
+        panorama = (result_root / dataset / 'mgdh' / 'stitch_result.png'
+                    if result_root is not None else scene_dir / 'panorama.png')
         mesh_path = scene_dir / "mesh.npy"
         mdr = residual_avg = residual_sd = niqe = math.nan
         status = "ok"
@@ -278,7 +281,7 @@ def write_report(output_root: Path, rows: list[dict[str, Any]]) -> None:
         f"- Mean MDR: {fmt_float(mean_mdr)}",
         f"- Mean NIQE: {fmt_float(mean_niqe)}",
         "",
-        "Result image: `<scene>/panorama.png`.",
+        "Result image: `<result-root>/<scene>/mgdh/stitch_result.png`; mesh and native tables stay in the work root.",
         "MDR uses the MGDH predicted 8x8 mesh at 512x512 resolution; NIQE uses pyiqa on the saved panorama rendered by the classical canvas renderer.",
         "",
     ]
@@ -293,6 +296,7 @@ def evaluate_and_write(
     depth_gsp_root: Path,
     device: str,
     scenes: list[str] | None = None,
+    result_root: Path | None = None,
     limit: int = 0,
     skip_mdr: bool = False,
     skip_niqe: bool = False,
@@ -301,7 +305,7 @@ def evaluate_and_write(
     manifest_rows = read_manifest(manifest)
     rows = select_rows(manifest_rows, scenes=scenes, limit=limit)
     output_root.mkdir(parents=True, exist_ok=True)
-    result_rows = evaluate_rows(rows, mgdh_root=mgdh_root, device=device, skip_mdr=skip_mdr, skip_niqe=skip_niqe)
+    result_rows = evaluate_rows(rows, mgdh_root=mgdh_root, result_root=result_root, device=device, skip_mdr=skip_mdr, skip_niqe=skip_niqe)
     if scenes or limit > 0:
         result_rows = merge_per_pair_rows(output_root, manifest_rows, result_rows)
     write_csv(output_root / "per_pair.csv", result_rows, PER_PAIR_FIELDS)
@@ -316,6 +320,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--mgdh-root", default=DEFAULT_OUT_ROOT)
+    parser.add_argument("--result-root", default=DEFAULT_RESULT_ROOT)
     parser.add_argument("--output-root", default=DEFAULT_OUT_ROOT)
     parser.add_argument("--depth-gsp-root", default=DEFAULT_DEPTH_GSP_ROOT)
     parser.add_argument("--device", default="cuda")
@@ -332,6 +337,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = evaluate_and_write(
         manifest=Path(args.manifest),
         mgdh_root=Path(args.mgdh_root),
+        result_root=Path(args.result_root),
         output_root=Path(args.output_root),
         depth_gsp_root=Path(args.depth_gsp_root),
         device=args.device,

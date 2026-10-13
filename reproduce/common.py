@@ -11,15 +11,30 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CODES_DIR = REPO_ROOT / "Codes"
 
-DEFAULT_MANIFEST = r"D:\StitchBench_Result\_global_work\_shared\manifest.csv"
-DEFAULT_OUT_ROOT = r"D:\StitchBench_Result\mgdh"
-DEFAULT_DEPTH_GSP_ROOT = r"D:\StitchBench_Result\depth_gsp"
+DEFAULT_MANIFEST = r"D:\StitchBench_Result\manifest.csv"
+DEFAULT_RESULT_ROOT = r"D:\StitchBench_Result"
+DEFAULT_OUT_ROOT = r"D:\StitchBench_Result\_global_work\mgdh"
+DEFAULT_DEPTH_GSP_ROOT = r"D:\StitchBench_Result\_global_work\depth_gsp"
 DEFAULT_CHECKPOINT = str(CODES_DIR / "checkpoints" / "model.ckpt-500000")
 METHOD_KEY = "mgdh"
 METHOD_VARIANT = "MGDH checkpoint + classical feature-homography canvas renderer"
 IMAGE_SIZE = 512
 GRID_W = 8
 GRID_H = 8
+
+
+def publish_png(path: Path, image: np.ndarray) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.stem + '.candidate.png')
+    try:
+        if image is None or image.size == 0 or not cv2.imwrite(str(temporary), image):
+            raise RuntimeError(f'Cannot encode panorama: {path}')
+        check = cv2.imread(str(temporary), cv2.IMREAD_UNCHANGED)
+        if check is None or check.shape != image.shape:
+            raise RuntimeError(f'Invalid encoded panorama: {path}')
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 METRICS_FIELDS = [
     "index",

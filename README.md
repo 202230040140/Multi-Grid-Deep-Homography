@@ -70,3 +70,6 @@ NIE Lang -- nielang@bjtu.edu.cn
   pages={4460-4472},
   doi={10.1109/TCSVT.2021.3125736}}
 ```
+
+
+Current benchmark output interface: [OUTPUT_FORMAT.md](OUTPUT_FORMAT.md).

@@ -17,6 +17,8 @@ from .common import (
     DEFAULT_CHECKPOINT,
     DEFAULT_MANIFEST,
     DEFAULT_OUT_ROOT,
+    DEFAULT_RESULT_ROOT,
+    publish_png,
     GRID_H,
     GRID_W,
     IMAGE_SIZE,
@@ -336,6 +338,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
     manifest_rows = read_manifest(Path(args.manifest))
     rows = select_rows(manifest_rows, scenes=args.scene, limit=args.limit)
     out_root = Path(args.out_root)
+    result_root = Path(args.result_root)
     out_root.mkdir(parents=True, exist_ok=True)
 
     predictor: MGDHPredictor | None = None
@@ -344,7 +347,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
         pending = []
         for row in rows:
             scene = row["dataset"]
-            pano_path = out_root / scene / "panorama.png"
+            pano_path = result_root / scene / METHOD_KEY / "stitch_result.png"
             if args.skip_existing and not args.force and pano_path.exists():
                 pending.append((row, True))
             else:
@@ -355,7 +358,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
         for index, (row, skipped) in enumerate(pending, start=1):
             scene = row["dataset"]
             scene_dir = out_root / scene
-            pano_path = scene_dir / "panorama.png"
+            pano_path = result_root / scene / METHOD_KEY / "stitch_result.png"
             left, right, left_name, right_name = parse_image_paths(row)
             print(f"[{index}/{len(rows)}] {scene}")
 
@@ -367,7 +370,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
                     "img2": right_name,
                     "status": "ok",
                     "runtime_seconds": "",
-                    "panorama": "panorama.png",
+                    "panorama": str(pano_path),
                     "renderer": "unknown",
                     "error": "",
                 }
@@ -386,7 +389,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
                     raise RuntimeError("MGDH predictor was not initialized")
                 scene_dir.mkdir(parents=True, exist_ok=True)
                 panorama, mesh, renderer = predictor.predict(left, right)
-                cv2.imwrite(str(pano_path), panorama)
+                publish_png(pano_path, panorama)
                 np.save(scene_dir / "mesh.npy", mesh)
                 runtime = time.perf_counter() - started
                 metrics = {
@@ -396,7 +399,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
                     "img2": right_name,
                     "status": "ok",
                     "runtime_seconds": f"{runtime:.2f}",
-                    "panorama": "panorama.png",
+                    "panorama": str(pano_path),
                     "renderer": renderer,
                     "error": "",
                 }
@@ -404,6 +407,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
                 metrics_rows.append(metrics)
                 print(f"  -> ok ({runtime:.1f}s, {renderer})")
             except Exception as exc:
+                pano_path.unlink(missing_ok=True)
                 runtime = time.perf_counter() - started
                 error = "".join(traceback.format_exception_only(type(exc), exc)).strip()
                 metrics = {
@@ -446,6 +450,7 @@ def run(args: argparse.Namespace) -> list[dict[str, str]]:
         evaluate_and_write(
             manifest=Path(args.manifest),
             mgdh_root=out_root,
+            result_root=result_root,
             output_root=out_root,
             depth_gsp_root=Path(args.depth_gsp_root),
             device=args.device,
@@ -460,8 +465,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--out-root", default=DEFAULT_OUT_ROOT)
+    parser.add_argument("--result-root", default=DEFAULT_RESULT_ROOT)
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
-    parser.add_argument("--depth-gsp-root", default=r"D:\StitchBench_Result\depth_gsp")
+    parser.add_argument("--depth-gsp-root", default=r"D:\StitchBench_Result\_global_work\depth_gsp")
     parser.add_argument("--gpu", default="0")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--compat-mode", choices=["auto", "legacy", "shim"], default="auto")

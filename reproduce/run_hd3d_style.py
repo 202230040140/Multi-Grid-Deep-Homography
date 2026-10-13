@@ -14,7 +14,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from .common import DEFAULT_CHECKPOINT, METHOD_KEY, METHOD_VARIANT, REPO_ROOT, write_json
+from .common import DEFAULT_CHECKPOINT, METHOD_KEY, METHOD_VARIANT, REPO_ROOT, write_json, publish_png
 from .run_stitchbench_general import MGDHPredictor
 
 GITHUB_ROOT = REPO_ROOT.parent
@@ -97,7 +97,7 @@ def build_pair_paths(row: dict[str, str], method_dir: Path, runtime_seconds: flo
         pair_name=row["pair_name"],
         final_pair_dir=Path(row["final_pair_dir"]),
         method_dir=method_dir,
-        raw_path=method_dir / "raw.png",
+        raw_path=method_dir / "stitch_result.png",
         aligned_path=method_dir / "aligned_to_gt.png",
         valid_mask_path=method_dir / "valid_mask.png",
         gt_path=Path(row["gt_path"]),
@@ -123,17 +123,18 @@ def process_pair(
     skip_existing: bool,
 ) -> dict[str, Any]:
     method_dir = Path(row["final_pair_dir"]) / method
-    raw_path = method_dir / "raw.png"
+    raw_path = method_dir / "stitch_result.png"
     metrics_path = method_dir / "metrics.json"
     if skip_existing and not force and raw_path.exists() and metrics_path.exists():
         return json.loads(metrics_path.read_text(encoding="utf-8-sig"))
 
     method_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
+    inference_success = False
     try:
         panorama, mesh, renderer = predictor.predict(Path(row["left_source"]), Path(row["right_source"]))
-        if not cv2.imwrite(str(raw_path), panorama):
-            raise RuntimeError(f"failed to write raw image: {raw_path}")
+        publish_png(raw_path, panorama)
+        inference_success = True
         np.save(method_dir / "mesh.npy", mesh)
         runtime = time.perf_counter() - started
         write_json(
@@ -155,6 +156,10 @@ def process_pair(
         write_metrics(metrics_path, metrics)
         return metrics
     except Exception as exc:
+        if not inference_success:
+            raw_path.unlink(missing_ok=True)
+        for name in ('aligned_to_gt.png', 'valid_mask.png'):
+            (method_dir / name).unlink(missing_ok=True)
         runtime = time.perf_counter() - started
         reason = "".join(traceback.format_exception_only(type(exc), exc)).strip()
         write_json(

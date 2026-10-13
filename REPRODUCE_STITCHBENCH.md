@@ -7,7 +7,7 @@ This adapter runs the imported MGDH checkpoint and renders inspectable results w
 - Manifest: `D:\StitchBench_Result\_global_work\_shared\manifest.csv`
 - Images: first two files in each manifest row's `image_files`
 - Checkpoint: `Codes\checkpoints\model.ckpt-500000.*`
-- Default output root: `D:\StitchBench_Result\mgdh`
+- Default work root: `D:\StitchBench_Result\_global_work\mgdh`
 
 ## Environment Policy
 
@@ -20,7 +20,7 @@ Do not create a legacy MGDH environment unless this default-environment attempt 
 ```powershell
 python -m reproduce.run_stitchbench_general `
   --manifest D:\StitchBench_Result\_global_work\_shared\manifest.csv `
-  --out-root D:\StitchBench_Result\mgdh `
+  --out-root D:\StitchBench_Result\_global_work\mgdh `
   --scene SVA-01_chess `
   --gpu 0 `
   --force
@@ -28,19 +28,19 @@ python -m reproduce.run_stitchbench_general `
 
 Expected files:
 
-- `D:\StitchBench_Result\mgdh\SVA-01_chess\panorama.png`
-- `D:\StitchBench_Result\mgdh\SVA-01_chess\metrics.json`
-- `D:\StitchBench_Result\mgdh\metrics.csv`
-- `D:\StitchBench_Result\mgdh\per_pair.csv`
+- `D:\StitchBench_Result\SVA-01_chess\mgdh\stitch_result.png`
+- `D:\StitchBench_Result\_global_work\mgdh\SVA-01_chess\metrics.json`
+- `D:\StitchBench_Result\_global_work\mgdh\metrics.csv`
+- `D:\StitchBench_Result\_global_work\mgdh\per_pair.csv`
 
-`panorama.png` is the inspectable stitched canvas at the source-image scale.
+`<result-root>/<scene>/mgdh/stitch_result.png` is the inspectable stitched canvas at the source-image scale.
 
 ## Full Run
 
 ```powershell
 python -m reproduce.run_stitchbench_general `
   --manifest D:\StitchBench_Result\_global_work\_shared\manifest.csv `
-  --out-root D:\StitchBench_Result\mgdh `
+  --out-root D:\StitchBench_Result\_global_work\mgdh `
   --gpu 0 `
   --force
 ```
@@ -52,9 +52,9 @@ Use `--force` when upgrading from earlier 512x512 diagnostic outputs.
 ```powershell
 python -m reproduce.evaluate_stitchbench_mdr_niqe `
   --manifest D:\StitchBench_Result\_global_work\_shared\manifest.csv `
-  --mgdh-root D:\StitchBench_Result\mgdh `
-  --output-root D:\StitchBench_Result\mgdh `
-  --depth-gsp-root D:\StitchBench_Result\depth_gsp `
+  --mgdh-root D:\StitchBench_Result\_global_work\mgdh `
+  --output-root D:\StitchBench_Result\_global_work\mgdh `
+  --depth-gsp-root D:\StitchBench_Result\_global_work\depth_gsp `
   --device cuda
 ```
 
@@ -66,8 +66,8 @@ First-pair visual gate:
 
 ```powershell
 python -m reproduce.run_hd3d_style `
-  --manifest D:\HD3D_Result\_global_work\_work_root\manifest.csv `
-  --result-root D:\HD3D_Result `
+  --manifest D:\HD3D_Dataset_Result\_global_work\_work_root\manifest.csv `
+  --result-root D:\HD3D_Dataset_Result `
   --pair Indoor_001_p12 `
   --gpu 0 `
   --device cuda `
@@ -78,8 +78,8 @@ Full run:
 
 ```powershell
 python -m reproduce.run_hd3d_style `
-  --manifest D:\HD3D_Result\_global_work\_work_root\manifest.csv `
-  --result-root D:\HD3D_Result `
+  --manifest D:\HD3D_Dataset_Result\_global_work\_work_root\manifest.csv `
+  --result-root D:\HD3D_Dataset_Result `
   --gpu 0 `
   --device cuda `
   --force
@@ -87,12 +87,12 @@ python -m reproduce.run_hd3d_style `
 
 ## LPS-D
 
-First-pair visual gate uses the first row in `D:\LPS_Result\_global_work\_work_root\manifest.csv`:
+First-pair visual gate uses the first row in `D:\LPS-D_Result\_global_work\_work_root\manifest.csv`:
 
 ```powershell
 python -m reproduce.run_hd3d_style `
-  --manifest D:\LPS_Result\_global_work\_work_root\manifest.csv `
-  --result-root D:\LPS_Result `
+  --manifest D:\LPS-D_Result\_global_work\_work_root\manifest.csv `
+  --result-root D:\LPS-D_Result `
   --pair Scene_01_(-10893,-1291,627)_v1_p12 `
   --gpu 0 `
   --device cuda `
@@ -103,11 +103,14 @@ Full run:
 
 ```powershell
 python -m reproduce.run_hd3d_style `
-  --manifest D:\LPS_Result\_global_work\_work_root\manifest.csv `
-  --result-root D:\LPS_Result `
+  --manifest D:\LPS-D_Result\_global_work\_work_root\manifest.csv `
+  --result-root D:\LPS-D_Result `
   --gpu 0 `
   --device cuda `
   --force
 ```
 
 HD3D-style outputs are written to `<result_root>\<scene>\pair_<id>\mgdh\raw.png` with `metrics.json`, `aligned_to_gt.png`, `valid_mask.png`, and `method_status.json`.
+
+
+Formal result root is controlled by `--result-root` (default D:\StitchBench_Result). Native meshes, diagnostics and tables stay under `--out-root`. GT outputs use stitch_result.png, aligned_to_gt.png and valid_mask.png.
